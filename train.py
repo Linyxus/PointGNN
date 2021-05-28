@@ -55,7 +55,7 @@ def train():
 if __name__ == '__main__':
     params = {
         'hidden_dim': 128,
-        'k': 20,
+        'k': 40,
         'dropout': 0.5,
         'lr': 0.001,
         'weight_decay': 1e-5,
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=str, default='cuda:0')
-    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--nni', action='store_true')
     args = parser.parse_args()
 

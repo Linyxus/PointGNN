@@ -17,16 +17,20 @@ class GAT(nn.Module):
         self.layers = nn.ModuleList(self.layers)
         self.projection = nn.Sequential(
             nn.Linear(hidden_dim * num_layers, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU()
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
         )
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, output_dim)
         )
@@ -54,16 +58,20 @@ class GCN(nn.Module):
         self.layers = nn.ModuleList(self.layers)
         self.projection = nn.Sequential(
             nn.Linear(hidden_dim * num_layers, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU()
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
         )
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, output_dim)
         )
@@ -93,19 +101,23 @@ class DynamicGNN(nn.Module):
 
         self.projection = nn.Sequential(
             nn.Linear(hidden_dim * num_layers, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU()
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
         )
 
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ELU(),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, output_dim)
+            nn.Linear(hidden_dim, output_dim),
         )
 
     def forward(self, x: torch.FloatTensor, batch: torch.LongTensor):
