@@ -57,7 +57,7 @@ if __name__ == '__main__':
         'hidden_dim': 128,
         'k': 40,
         'dropout': 0.5,
-        'lr': 0.001,
+        'lr': 0.1,
         'weight_decay': 1e-5,
         'num_epochs': 200
     }
@@ -97,10 +97,12 @@ if __name__ == '__main__':
         num_layers=2, k=params['k'], dropout=params['dropout']
     ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=params['num_epochs'], eta_min=0.001)
 
     for epoch in range(1, params['num_epochs'] + 1):
         tic = perf_counter()
         loss, train_acc = train()
         test_acc = test()
+        lr_scheduler.step()
         toc = perf_counter()
         print(f'epoch {epoch}: train loss {loss:.6f}, train acc {train_acc:.6f}, test acc {test_acc:.6f} time {toc - tic:.4f} sec')
