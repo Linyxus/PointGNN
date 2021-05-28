@@ -6,6 +6,11 @@ from torch_cluster import knn
 from layers import DGCNNConv
 
 
+class GNN(nn.Module):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int):
+        super(GNN, self).__init__()
+
+
 class DynamicGNN(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int, k: int, dropout: float):
         super(DynamicGNN, self).__init__()
@@ -36,10 +41,10 @@ class DynamicGNN(nn.Module):
     def forward(self, x: torch.FloatTensor, batch: torch.LongTensor):
         xs = []
         for layer in self.layers:
-            edge_index = knn(x, x, self.k, batch, batch, num_workers=16)
+            edge_index = knn(x, x, self.k, batch, batch, num_workers=512)
             x = layer(x, edge_index)
             xs.append(x)
         x = self.projection(torch.cat(xs, dim=1))
         x = global_max_pool(x, batch)
         x = self.mlp(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, dim=1)
