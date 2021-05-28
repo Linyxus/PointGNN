@@ -6,7 +6,7 @@ from torch_geometric.nn.conv import MessagePassing
 class DGCNNConv(MessagePassing):
     def __init__(self, input_dim: int, hidden_dim: int, output_dim: int):
         super(DGCNNConv, self).__init__(aggr='max', flow='target_to_source')
-        self.mlp = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ELU(), nn.Linear(hidden_dim, output_dim))
+        self.mlp = nn.Sequential(nn.Linear(input_dim * 2, hidden_dim), nn.ELU(), nn.Linear(hidden_dim, output_dim))
 
     def __repr__(self):
         return f'EdgeConv()'

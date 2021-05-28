@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
-from .layers import DGCNNConv
+import torch.nn.functional as F
+from torch_geometric.nn import global_max_pool
+from torch_cluster import knn
+from layers import DGCNNConv
 
 
 class DynamicGNN(nn.Module):
@@ -8,11 +11,35 @@ class DynamicGNN(nn.Module):
         super(DynamicGNN, self).__init__()
         self.layers = []
         self.layers.append(DGCNNConv(input_dim, hidden_dim, hidden_dim))
-        for _ in range(num_layers - 2):
+        for _ in range(num_layers - 1):
             self.layers.append(DGCNNConv(hidden_dim, hidden_dim, hidden_dim))
-        self.layers.append(DGCNNConv(hidden_dim, hidden_dim, output_dim))
         self.layers = nn.ModuleList(self.layers)
         self.k = k
 
-    def forward(self, x: torch.FloatTensor):
-        pass
+        self.projection = nn.Sequential(
+            nn.Linear(hidden_dim * num_layers, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU()
+        )
+
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim)
+        )
+
+    def forward(self, x: torch.FloatTensor, batch: torch.LongTensor):
+        xs = []
+        for layer in self.layers:
+            edge_index = knn(x, x, self.k, batch, batch, num_workers=16)
+            x = layer(x, edge_index)
+            xs.append(x)
+        x = self.projection(torch.cat(xs, dim=1))
+        x = global_max_pool(x, batch)
+        x = self.mlp(x)
+        return F.log_softmax(x)
