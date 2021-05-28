@@ -1,14 +1,84 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import global_max_pool
+from torch_geometric.nn import global_max_pool, global_mean_pool
+from torch_geometric.nn import GCNConv, GATConv
 from torch_cluster import knn
 from layers import DGCNNConv
 
 
-class GNN(nn.Module):
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int):
-        super(GNN, self).__init__()
+class GAT(nn.Module):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_heads: int, num_layers: int, dropout: float):
+        super(GAT, self).__init__()
+        self.layers = []
+        self.layers.append(GATConv(input_dim, hidden_dim // num_heads, heads=num_heads))
+        for _ in range(num_layers - 1):
+            self.layers.append(GATConv(hidden_dim, hidden_dim // num_heads, heads=num_heads))
+        self.layers = nn.ModuleList(self.layers)
+        self.projection = nn.Sequential(
+            nn.Linear(hidden_dim * num_layers, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU()
+        )
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim)
+        )
+
+    def forward(self, x: torch.FloatTensor, edge_index: torch.LongTensor, batch: torch.LongTensor):
+        xs = []
+        for layer in self.layers:
+            x = layer(x, edge_index)
+            x = F.elu(x)
+            xs.append(x)
+        x = torch.cat(xs, dim=1)
+        x = self.projection(x)
+        x = global_mean_pool(x, batch)
+        x = self.mlp(x)
+        return F.log_softmax(x, dim=1)
+
+
+class GCN(nn.Module):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int, dropout: float):
+        super(GCN, self).__init__()
+        self.layers = []
+        self.layers.append(GCNConv(input_dim, hidden_dim, cached=False))
+        for _ in range(num_layers - 1):
+            self.layers.append(GCNConv(hidden_dim, hidden_dim, cached=False))
+        self.layers = nn.ModuleList(self.layers)
+        self.projection = nn.Sequential(
+            nn.Linear(hidden_dim * num_layers, hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU()
+        )
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim)
+        )
+
+    def forward(self, x: torch.FloatTensor, edge_index: torch.LongTensor, batch: torch.LongTensor):
+        xs = []
+        for layer in self.layers:
+            x = layer(x, edge_index)
+            x = F.elu(x)
+            xs.append(x)
+        x = torch.cat(xs, dim=1)
+        x = self.projection(x)
+        x = global_mean_pool(x, batch)
+        x = self.mlp(x)
+        return F.log_softmax(x, dim=1)
 
 
 class DynamicGNN(nn.Module):
@@ -43,6 +113,7 @@ class DynamicGNN(nn.Module):
         for layer in self.layers:
             edge_index = knn(x, x, self.k, batch, batch, num_workers=512)
             x = layer(x, edge_index)
+            x = F.elu(x)
             xs.append(x)
         x = self.projection(torch.cat(xs, dim=1))
         x = global_max_pool(x, batch)
