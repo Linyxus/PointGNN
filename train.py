@@ -57,7 +57,7 @@ if __name__ == '__main__':
         'hidden_dim': 128,
         'k': 40,
         'dropout': 0.5,
-        'lr': 0.1,
+        'lr': 0.01,
         'weight_decay': 1e-5,
         'num_epochs': 200
     }
@@ -65,6 +65,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--graph_cons', type=str, choices=['static', 'dynamic'])
     parser.add_argument('--nni', action='store_true')
     args = parser.parse_args()
 
@@ -97,12 +98,12 @@ if __name__ == '__main__':
         num_layers=2, k=params['k'], dropout=params['dropout']
     ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=params['num_epochs'], eta_min=0.001)
+    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=params['num_epochs'], eta_min=0.001)
 
     for epoch in range(1, params['num_epochs'] + 1):
         tic = perf_counter()
         loss, train_acc = train()
         test_acc = test()
-        lr_scheduler.step()
+        # lr_scheduler.step()
         toc = perf_counter()
         print(f'epoch {epoch}: train loss {loss:.6f}, train acc {train_acc:.6f}, test acc {test_acc:.6f} time {toc - tic:.4f} sec')
