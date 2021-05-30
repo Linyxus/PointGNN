@@ -126,8 +126,8 @@ class DynamicGNN(nn.Module):
 
     def forward(self, x: torch.FloatTensor, batch: torch.LongTensor):
         xs = []
+        edge_index = knn(x, x, self.k, batch, batch, num_workers=512)
         for layer in self.layers:
-            edge_index = knn(x, x, self.k, batch, batch, num_workers=512)
             x = layer(x, edge_index)
             x = F.elu(x)
             xs.append(x)
